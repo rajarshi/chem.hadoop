@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hadoop">
+    <property name="hadoop.src" value="src"/>
+    <property name="hadoop.lib" value="lib"/>
+    <property name="hadoop.build" value="classes"/>
+    <property name="hadoop.dist" value="dist"/>
+
+    <path id="compile.classpath">
+        <fileset dir="../guhar/libs">
+            <include name="jchem.jar"/>
+        </fileset>
+        <fileset dir="../../hadoop-1.0.3">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <target name='clean' id='clean'>
+        <delete dir="${hadoop.build}"/>
+    </target>
+
+    <target name='compile-hadoop' id='compile-hadoop'>
+        <mkdir dir="${hadoop.build}"/>
+        <javac srcdir="${hadoop.src}" destdir="${hadoop.build}"
+               debug="yes" target="1.6"
+               includes="**/*">
+            <classpath refid="compile.classpath"/>
+        </javac>
+    </target>
+
+
+    <target name='atom-count' id='atom-count' depends='compile-hadoop'>
+        <mkdir dir="${hadoop.dist}"/>
+        <jar destfile="${hadoop.dist}/atomcount.jar"
+             basedir="${hadoop.build}">
+            <manifest>
+                <attribute name="Main-Class" value="gov.nih.ncgc.hadoop.HeavyAtomCount"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name='smarts-search' id='smarts-search' depends='compile-hadoop'>
+        <mkdir dir="${hadoop.dist}"/>
+        <jar destfile="${hadoop.dist}/ss.jar"
+             basedir="${hadoop.build}">
+            <manifest>
+                <attribute name="Main-Class" value="gov.nih.ncgc.hadoop.SmartsSearch"/>
+            </manifest>
+        </jar>
+    </target>
+
+</project>
