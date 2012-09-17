@@ -6,10 +6,13 @@
     <property name="hadoop.dist" value="dist"/>
 
     <path id="compile.classpath">
-        <fileset dir="../guhar/libs">
+        <fileset dir="../java/guhar/libs">
             <include name="jchem.jar"/>
         </fileset>
-        <fileset dir="../../hadoop-1.0.3">
+        <fileset dir="../hadoop-1.0.3">
+            <include name="*.jar"/>
+        </fileset>
+        <fileset dir="../pig-0.10.0">
             <include name="*.jar"/>
         </fileset>
     </path>
@@ -44,6 +47,16 @@
              basedir="${hadoop.build}">
             <manifest>
                 <attribute name="Main-Class" value="gov.nih.ncgc.hadoop.SmartsSearch"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name='bioisostere' id='bioisostere' depends='compile-hadoop'>
+        <mkdir dir="${hadoop.dist}"/>
+        <jar destfile="${hadoop.dist}/bisos.jar"
+             basedir="${hadoop.build}">
+            <manifest>
+                <attribute name="Main-Class" value="gov.nih.ncgc.hadoop.BioIsostere"/>
             </manifest>
         </jar>
     </target>

@@ -40,4 +40,20 @@ public class MoleculePairWritable implements WritableComparable<MoleculePairWrit
         Text newc = moleculePairWritable.combined;
         return combined.compareTo(newc);
     }
+
+    public Text getS1() {
+        return s1;
+    }
+
+    public void setS1(Text s1) {
+        this.s1 = s1;
+    }
+
+    public Text getS2() {
+        return s2;
+    }
+
+    public void setS2(Text s2) {
+        this.s2 = s2;
+    }
 }
