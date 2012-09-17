@@ -5,22 +5,16 @@ import chemaxon.license.LicenseManager;
 import chemaxon.license.LicenseProcessingException;
 import chemaxon.struc.Molecule;
 import gov.nih.ncgc.hadoop.io.MoleculePairWritable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -37,27 +31,27 @@ import java.util.Iterator;
  * hadoop jar atomcount.jar path_to_smiles output_dir
  * </code>
  */
-public class BioIsostere {
-
-    public void configure(JobConf job) {
-
-        try {
-            Path[] licFiles = DistributedCache.getLocalCacheFiles(job);
-            BufferedReader reader = new BufferedReader(new FileReader(licFiles[0].toString()));
-            StringBuilder license = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) license.append(line);
-            reader.close();
-            LicenseManager.setLicense(license.toString());
-        } catch (IOException e) {
-        } catch (LicenseProcessingException e) {
-        }
-    }
+public class BioIsostere extends Configured implements Tool {
 
     public static class BioisostereMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, MoleculePairWritable> {
 
         private final static IntWritable one = new IntWritable(1);
         private Text smirks = new Text();
+
+        public void configure(JobConf job) {
+
+            try {
+                Path[] licFiles = DistributedCache.getLocalCacheFiles(job);
+                BufferedReader reader = new BufferedReader(new FileReader(licFiles[0].toString()));
+                StringBuilder license = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) license.append(line);
+                reader.close();
+                LicenseManager.setLicense(license.toString());
+            } catch (IOException e) {
+            } catch (LicenseProcessingException e) {
+            }
+        }
 
         public void map(LongWritable longWritable, Text value, OutputCollector<Text, MoleculePairWritable> output, Reporter reporter) throws IOException {
             String[] toks = value.toString().split("\t");
@@ -86,24 +80,40 @@ public class BioIsostere {
         }
     }
 
+    public int run(String[] args) throws Exception {
+        JobConf jobConf = new JobConf(getConf(), HeavyAtomCount.class);
+        jobConf.setJobName("smartsSearch");
+
+        jobConf.setOutputKeyClass(Text.class);
+        jobConf.setOutputValueClass(IntWritable.class);
+
+        jobConf.setMapperClass(BioisostereMapper.class);
+        jobConf.setCombinerClass(MoleculePairReducer.class);
+        jobConf.setReducerClass(MoleculePairReducer.class);
+
+        jobConf.setInputFormat(TextInputFormat.class);
+        jobConf.setOutputFormat(TextOutputFormat.class);
+
+        jobConf.setNumMapTasks(5);
+
+        if (args.length != 3) {
+            System.err.println("Usage: bisos <datafile> <out> <license file>");
+            System.exit(2);
+        }
+
+        FileInputFormat.setInputPaths(jobConf, new Path(args[0]));
+        FileOutputFormat.setOutputPath(jobConf, new Path(args[1]));
+
+        // make the license file available vis dist cache
+        DistributedCache.addCacheFile(new Path(args[2]).toUri(), jobConf);
+
+        JobClient.runJob(jobConf);
+        return 0;
+    }
+
     public static void main(String[] args) throws Exception {
-        JobConf conf = new JobConf(BioIsostere.class);
-        conf.setJobName("bioIsostere");
 
-        conf.setOutputKeyClass(Text.class);
-        conf.setOutputValueClass(MoleculePairWritable.class);
-
-        conf.setMapperClass(BioisostereMapper.class);
-        conf.setCombinerClass(MoleculePairReducer.class);
-        conf.setReducerClass(MoleculePairReducer.class);
-
-        conf.setInputFormat(TextInputFormat.class);
-        conf.setOutputFormat(TextOutputFormat.class);
-
-        FileInputFormat.setInputPaths(conf, new Path(args[0]));
-        FileOutputFormat.setOutputPath(conf, new Path(args[1]));
-
-        JobClient.runJob(conf);
+        int res = ToolRunner.run(new Configuration(), new BioIsostere(), args);
 
     }
 }
