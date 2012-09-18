@@ -68,8 +68,7 @@ public class BioIsostere extends Configured implements Tool {
 
                     // compare m1 & m2
                     smirks.set(rndKeys[rnd.nextInt(rndKeys.length)]);
-                    MoleculePairWritable out = new MoleculePairWritable(toks[i], toks[j]);
-                    output.collect(smirks, out);
+                    output.collect(smirks, new MoleculePairWritable(toks[i], toks[j]));
                 }
             }
         }
@@ -92,7 +91,7 @@ public class BioIsostere extends Configured implements Tool {
         jobConf.setJobName("smartsSearch");
 
         jobConf.setOutputKeyClass(Text.class);
-        jobConf.setOutputValueClass(IntWritable.class);
+        jobConf.setOutputValueClass(MoleculePairWritable.class);
 
         jobConf.setMapperClass(BioisostereMapper.class);
         jobConf.setCombinerClass(MoleculePairReducer.class);
