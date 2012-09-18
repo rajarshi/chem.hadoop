@@ -4,6 +4,7 @@ import chemaxon.formats.MolImporter;
 import chemaxon.license.LicenseManager;
 import chemaxon.license.LicenseProcessingException;
 import chemaxon.struc.Molecule;
+import gov.nih.ncgc.hadoop.io.MoleculePairWritable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -42,13 +43,12 @@ import java.util.Random;
  */
 public class BioIsostere extends Configured implements Tool {
 
-    public static class BioisostereMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
+    public static class BioisostereMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, MoleculePairWritable> {
 
         static enum Counters {INPUT_FRAGS, N_COMP}
 
         private long ncomp = 0;
         private Text smirks = new Text();
-        private Text smipair = new Text();
         private String[] rndKeys = {"key1", "key2", "key3", "key4", "key4", "key4"};
         Random rnd;
 
@@ -68,7 +68,7 @@ public class BioIsostere extends Configured implements Tool {
             }
         }
 
-        public void map(LongWritable longWritable, Text value, OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
+        public void map(LongWritable longWritable, Text value, OutputCollector<Text, MoleculePairWritable> output, Reporter reporter) throws IOException {
             String[] toks = value.toString().split("\t");
             Molecule fragment = MolImporter.importMol(toks[0]);
             for (int i = 1; i < toks.length - 1; i++) {
@@ -78,9 +78,7 @@ public class BioIsostere extends Configured implements Tool {
 
                     // compare m1 & m2
                     smirks.set(rndKeys[rnd.nextInt(rndKeys.length)]);
-//                    output.collect(smirks, new MoleculePairWritable(toks[i], toks[j]));
-                    smipair.set(toks[i] + "\t" + toks[j]);
-                    output.collect(smirks, smipair);
+                    output.collect(smirks, new MoleculePairWritable(toks[i], toks[j]));
                     reporter.incrCounter(Counters.N_COMP, 1);
 
                     if (++ncomp % 100 == 0) {
@@ -90,14 +88,13 @@ public class BioIsostere extends Configured implements Tool {
                 }
             }
             reporter.incrCounter(Counters.INPUT_FRAGS, 1);
-
         }
     }
 
-    public static class MoleculePairReducer extends MapReduceBase implements Reducer<Text, Text, WritableComparable<?>, IntWritable> {
+    public static class MoleculePairReducer extends MapReduceBase implements Reducer<Text, MoleculePairWritable, WritableComparable<?>, IntWritable> {
 
         public void reduce(Text key,
-                           Iterator<Text> values,
+                           Iterator<MoleculePairWritable> values,
                            OutputCollector<WritableComparable<?>, IntWritable> reduceOutput, Reporter reporter) throws IOException {
 
             int sum = 0;
@@ -118,7 +115,7 @@ public class BioIsostere extends Configured implements Tool {
         jobConf.setOutputValueClass(IntWritable.class);
 
         jobConf.setMapOutputKeyClass(Text.class);
-        jobConf.setMapOutputValueClass(Text.class);
+        jobConf.setMapOutputValueClass(MoleculePairWritable.class);
 
         jobConf.setMapperClass(BioisostereMapper.class);
         jobConf.setReducerClass(MoleculePairReducer.class);
