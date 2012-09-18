@@ -95,7 +95,7 @@ public class BioIsostere extends Configured implements Tool {
 
     public int run(String[] args) throws Exception {
         JobConf jobConf = new JobConf(getConf(), HeavyAtomCount.class);
-        jobConf.setJobName("smartsSearch");
+        jobConf.setJobName("biosIsostere");
 
         jobConf.setOutputKeyClass(Text.class);
         jobConf.setOutputValueClass(MoleculePairWritable.class);
