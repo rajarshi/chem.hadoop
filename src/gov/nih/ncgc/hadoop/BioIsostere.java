@@ -36,6 +36,9 @@ public class BioIsostere extends Configured implements Tool {
 
     public static class BioisostereMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, MoleculePairWritable> {
 
+        static enum Counters {INPUT_FRAGS, INPUT_MOLS}
+
+        private long nmol = 0;
         private final static IntWritable one = new IntWritable(1);
         private Text smirks = new Text();
         private String[] rndKeys = {"key1", "key2", "key3", "key4"};
@@ -60,7 +63,6 @@ public class BioIsostere extends Configured implements Tool {
         public void map(LongWritable longWritable, Text value, OutputCollector<Text, MoleculePairWritable> output, Reporter reporter) throws IOException {
             String[] toks = value.toString().split("\t");
             Molecule fragment = MolImporter.importMol(toks[0]);
-
             for (int i = 1; i < toks.length - 1; i++) {
                 Molecule m1 = MolImporter.importMol(toks[i]);
                 for (int j = i + 1; j < toks.length; j++) {
@@ -69,8 +71,13 @@ public class BioIsostere extends Configured implements Tool {
                     // compare m1 & m2
                     smirks.set(rndKeys[rnd.nextInt(rndKeys.length)]);
                     output.collect(smirks, new MoleculePairWritable(toks[i], toks[j]));
+                    reporter.incrCounter(Counters.INPUT_MOLS, 1);
+
+                    if (++nmol % 100 == 0)
+                        reporter.setStatus("Finished processing " + nmol + " records");
                 }
             }
+            reporter.incrCounter(Counters.INPUT_FRAGS, 1);
         }
     }
 
@@ -101,6 +108,7 @@ public class BioIsostere extends Configured implements Tool {
         jobConf.setOutputFormat(TextOutputFormat.class);
 
         jobConf.setNumMapTasks(5);
+        jobConf.set("mapreduce.task.timeout", "1200");
 
         if (args.length != 3) {
             System.err.println("Usage: bisos <datafile> <out> <license file>");
