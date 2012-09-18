@@ -22,6 +22,7 @@ public class MoleculePairWritable implements WritableComparable<MoleculePairWrit
     }
 
     public MoleculePairWritable(String s1, String s2) {
+        super();
         this.s1 = new Text(s1);
         this.s2 = new Text(s2);
 
@@ -32,6 +33,25 @@ public class MoleculePairWritable implements WritableComparable<MoleculePairWrit
         else combined = new Text(s1 + s2);
     }
 
+    public void set(String s1, String s2) {
+        this.s1 = new Text(s1);
+        this.s2 = new Text(s2);
+
+        // make sure we combine the SMILES in a fixed order
+        if (s1.compareTo(s2) > 0)
+            combined = new Text(s1 + s2);
+        else if (s1.compareTo(s2) < 0) combined = new Text(s2 + s1);
+        else combined = new Text(s1 + s2);
+    }
+
+    public static MoleculePairWritable read(DataInput dataInput) throws IOException {
+        MoleculePairWritable m = new MoleculePairWritable();
+        m.s1.readFields(dataInput);
+        m.s2.readFields(dataInput);
+        m.combined.readFields(dataInput);
+        return m;
+    }
+
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.write(s1.getBytes());
         dataOutput.write(s2.getBytes());
@@ -39,9 +59,9 @@ public class MoleculePairWritable implements WritableComparable<MoleculePairWrit
     }
 
     public void readFields(DataInput dataInput) throws IOException {
-        combined.readFields(dataInput);
-        s2.readFields(dataInput);
         s1.readFields(dataInput);
+        s2.readFields(dataInput);
+        combined.readFields(dataInput);
     }
 
     public int compareTo(MoleculePairWritable o) {
