@@ -13,44 +13,27 @@ import java.io.IOException;
  * @author Rajarshi Guha
  */
 public class MoleculePairWritable implements Writable {
-    Text s1 = null, s2 = null, combined = null;
+    Text s1 = null, s2 = null;
 
     public MoleculePairWritable() {
         s1 = new Text();
         s2 = new Text();
-        combined = new Text();
     }
 
     public MoleculePairWritable(String s1, String s2) {
         super();
         this.s1 = new Text(s1);
         this.s2 = new Text(s2);
-
-        // make sure we combine the SMILES in a fixed order
-        if (s1.compareTo(s2) > 0)
-            combined = new Text(s1 + s2);
-        else if (s1.compareTo(s2) < 0) combined = new Text(s2 + s1);
-        else combined = new Text(s1 + s2);
     }
 
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeUTF(s1.toString());
         dataOutput.writeUTF(s2.toString());
-        dataOutput.writeUTF(combined.toString());
     }
 
     public void readFields(DataInput dataInput) throws IOException {
         s1 = new Text(dataInput.readUTF());
         s2 = new Text(dataInput.readUTF());
-        combined = new Text(dataInput.readUTF());
-    }
-
-    public Text getCombined() {
-        return combined;
-    }
-
-    public void setCombined(Text combined) {
-        this.combined = combined;
     }
 
     public Text getS1() {
@@ -70,6 +53,6 @@ public class MoleculePairWritable implements Writable {
     }
 
     public String toString() {
-        return combined.toString();
+        return s1.toString() + "\t" + s2.toString();
     }
 }
