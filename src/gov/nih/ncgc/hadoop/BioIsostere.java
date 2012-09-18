@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Random;
 
 /**
  * Frequency of heavy atoms in a collection of SMILES.
@@ -37,6 +38,8 @@ public class BioIsostere extends Configured implements Tool {
 
         private final static IntWritable one = new IntWritable(1);
         private Text smirks = new Text();
+        private String[] rndKeys = {"key1", "key2", "key3", "key4"};
+        Random rnd;
 
         public void configure(JobConf job) {
 
@@ -48,6 +51,7 @@ public class BioIsostere extends Configured implements Tool {
                 while ((line = reader.readLine()) != null) license.append(line);
                 reader.close();
                 LicenseManager.setLicense(license.toString());
+                rnd = new Random();
             } catch (IOException e) {
             } catch (LicenseProcessingException e) {
             }
@@ -63,7 +67,7 @@ public class BioIsostere extends Configured implements Tool {
                     Molecule m2 = MolImporter.importMol(toks[j]);
 
                     // compare m1 & m2
-                    smirks.set("smirks goes here");
+                    smirks.set(rndKeys[rnd.nextInt(rndKeys.length)]);
                     MoleculePairWritable out = new MoleculePairWritable(toks[i], toks[j]);
                     output.collect(smirks, out);
                 }
@@ -73,7 +77,10 @@ public class BioIsostere extends Configured implements Tool {
 
     public static class MoleculePairReducer extends MapReduceBase implements Reducer<Text, MoleculePairWritable, Text, IntWritable> {
 
-        public void reduce(Text key, Iterator<MoleculePairWritable> values, OutputCollector<Text, IntWritable> output, Reporter reporter) throws IOException {
+        public void reduce(Text key,
+                           Iterator<MoleculePairWritable> values,
+                           OutputCollector<Text, IntWritable> output, Reporter reporter)
+                throws IOException {
             int sum = 0;
             while (values.hasNext()) sum++;
             output.collect(key, new IntWritable(sum));
