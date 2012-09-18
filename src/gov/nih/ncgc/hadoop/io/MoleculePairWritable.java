@@ -13,7 +13,13 @@ import java.io.IOException;
  * @author Rajarshi Guha
  */
 public class MoleculePairWritable implements WritableComparable<MoleculePairWritable> {
-    Text s1, s2, combined;
+    Text s1 = null, s2 = null, combined = null;
+
+    public MoleculePairWritable() {
+        s1 = new Text();
+        s2 = new Text();
+        combined = new Text();
+    }
 
     public MoleculePairWritable(String s1, String s2) {
         this.s1 = new Text(s1);
@@ -23,22 +29,31 @@ public class MoleculePairWritable implements WritableComparable<MoleculePairWrit
         if (s1.compareTo(s2) > 0)
             combined = new Text(s1 + s2);
         else if (s1.compareTo(s2) < 0) combined = new Text(s2 + s1);
-        else combined = new Text(s1+s2);
+        else combined = new Text(s1 + s2);
     }
 
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.write(s1.getBytes());
         dataOutput.write(s2.getBytes());
+        dataOutput.write(combined.getBytes());
     }
 
     public void readFields(DataInput dataInput) throws IOException {
-        s1.readFields(dataInput);
+        combined.readFields(dataInput);
         s2.readFields(dataInput);
+        s1.readFields(dataInput);
     }
 
-    public int compareTo(MoleculePairWritable moleculePairWritable) {
-        Text newc = moleculePairWritable.combined;
-        return combined.compareTo(newc);
+    public int compareTo(MoleculePairWritable o) {
+        return combined.compareTo(o.getCombined());
+    }
+
+    public Text getCombined() {
+        return combined;
+    }
+
+    public void setCombined(Text combined) {
+        this.combined = combined;
     }
 
     public Text getS1() {
@@ -55,5 +70,9 @@ public class MoleculePairWritable implements WritableComparable<MoleculePairWrit
 
     public void setS2(Text s2) {
         this.s2 = s2;
+    }
+
+    public String toString() {
+        return combined.toString();
     }
 }
