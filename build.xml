@@ -9,6 +9,9 @@
         <fileset dir="../java/guhar/libs">
             <include name="jchem.jar"/>
         </fileset>
+        <fileset dir="lib">
+            <include name="rgroup.jar"/>
+        </fileset>
         <fileset dir="../hadoop-1.0.3">
             <include name="*.jar"/>
         </fileset>
