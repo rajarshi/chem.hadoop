@@ -95,6 +95,7 @@ public class NaiveBioIsostere {
     }
 
     public static void main(String[] args) throws Exception {
+        System.out.println("Using JChem: " + chemaxon.jchem.VersionInfo.JCHEM_VERSION);
         if (args.length != 1) {
             System.out.println("Usage: java -jar bisos.jar gov.nih.ncgc.hadoop.NaiveBioIsostere INPUT_FILE");
             System.out.println("\nINPUT_FILE should be of the form: FRAG_SMI MEM_SMI1 MEM_SMI2 ...");

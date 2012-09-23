@@ -1,10 +1,8 @@
 package gov.nih.ncgc.hadoop;
 
-import chemaxon.formats.MolImporter;
-import chemaxon.license.LicenseManager;
-import chemaxon.license.LicenseProcessingException;
-import chemaxon.struc.Molecule;
+import gov.nih.ncgc.chemical.chemical;
 import gov.nih.ncgc.hadoop.io.MoleculePairWritable;
+import gov.nih.ncgc.jchemical.Jchemical;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -24,14 +22,15 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapred.lib.NLineInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import test.BioIsostereReplace;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Random;
 
 /**
  * Generate pairwise differences between molecules.
@@ -49,8 +48,6 @@ public class BioIsostere extends Configured implements Tool {
 
         private long ncomp = 0;
         private Text smirks = new Text();
-        private String[] rndKeys = {"key1", "key2", "key3", "key4", "key4", "key4"};
-        Random rnd;
 
         public void configure(JobConf job) {
 
@@ -61,33 +58,55 @@ public class BioIsostere extends Configured implements Tool {
                 String line;
                 while ((line = reader.readLine()) != null) license.append(line);
                 reader.close();
-                LicenseManager.setLicense(license.toString());
-                rnd = new Random();
+//                LicenseManager.setLicense(license.toString());
             } catch (IOException e) {
-            } catch (LicenseProcessingException e) {
             }
         }
 
         public void map(LongWritable longWritable, Text value, OutputCollector<Text, MoleculePairWritable> output, Reporter reporter) throws IOException {
-            String[] toks = value.toString().split("\t");
-            Molecule fragment = MolImporter.importMol(toks[0]);
-            for (int i = 1; i < toks.length - 1; i++) {
-                Molecule m1 = MolImporter.importMol(toks[i]);
-                for (int j = i + 1; j < toks.length; j++) {
-                    Molecule m2 = MolImporter.importMol(toks[j]);
 
-                    // compare m1 & m2
-                    smirks.set(rndKeys[rnd.nextInt(rndKeys.length)]);
-                    output.collect(smirks, new MoleculePairWritable(toks[i], toks[j]));
-                    reporter.incrCounter(Counters.N_COMP, 1);
+            try {
+                String[] toks = value.toString().split("\t");
+                BioIsostereReplace bir = new BioIsostereReplace();
 
-                    if (++ncomp % 100 == 0) {
-                        reporter.setStatus("Performed " + ncomp + " comparisons [on " + (toks.length - 1) + " members]");
-                        reporter.progress();
+                chemical scaf = new Jchemical();
+                scaf.load(toks[0], chemical.FORMAT_SMILES);
+                bir.setScaffold(toks[0]);
+
+                if (toks.length - 1 > 500) {
+                    System.out.println("Populous scaffold! " + (toks.length - 1) + " members");
+                }
+
+                for (int i = 1; i < toks.length - 1; i++) {
+
+                    chemical jchem1 = new Jchemical();
+                    jchem1.load(toks[i], chemical.FORMAT_SMILES);
+                    bir.setQuery(jchem1);
+
+                    for (int j = i + 1; j < toks.length; j++) {
+
+                        chemical jchem2 = new Jchemical();
+                        jchem2.load(toks[j], chemical.FORMAT_SMILES);
+                        bir.setTarget(jchem2);
+
+
+                        for (String aSmirk : bir.getSmirksList()) {
+                            smirks.set(aSmirk);
+                            output.collect(smirks, new MoleculePairWritable(toks[i], toks[j]));
+                        }
+
+                        reporter.incrCounter(Counters.N_COMP, 1);
+
+                        if (++ncomp % 100 == 0) {
+                            reporter.setStatus("Performed " + ncomp + " comparisons [on " + (toks.length - 1) + " members]");
+                            reporter.progress();
+                        }
                     }
                 }
+                reporter.incrCounter(Counters.INPUT_FRAGS, 1);
+            } catch (Exception e) {
+
             }
-            reporter.incrCounter(Counters.INPUT_FRAGS, 1);
         }
     }
 
@@ -120,7 +139,9 @@ public class BioIsostere extends Configured implements Tool {
         jobConf.setMapperClass(BioisostereMapper.class);
         jobConf.setReducerClass(MoleculePairReducer.class);
 
-        jobConf.setInputFormat(TextInputFormat.class);
+//        jobConf.setInputFormat(TextInputFormat.class);
+        jobConf.setInt("mapred.line.input.format.linespermap", 10);
+        jobConf.setInputFormat(NLineInputFormat.class);
         jobConf.setOutputFormat(TextOutputFormat.class);
 
         if (args.length != 3) {
@@ -142,7 +163,7 @@ public class BioIsostere extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
-
+        System.out.println("Using JChem: " + chemaxon.jchem.VersionInfo.JCHEM_VERSION);
         int res = ToolRunner.run(new Configuration(), new BioIsostere(), args);
         System.exit(res);
 
