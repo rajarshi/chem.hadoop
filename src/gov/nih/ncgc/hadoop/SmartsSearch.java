@@ -2,8 +2,6 @@ package gov.nih.ncgc.hadoop;
 
 import chemaxon.formats.MolFormatException;
 import chemaxon.formats.MolImporter;
-import chemaxon.license.LicenseManager;
-import chemaxon.license.LicenseProcessingException;
 import chemaxon.sss.search.MolSearch;
 import chemaxon.sss.search.SearchException;
 import chemaxon.struc.Molecule;
@@ -55,15 +53,14 @@ public class SmartsSearch extends Configured implements Tool {
                 String line;
                 while ((line = reader.readLine()) != null) license.append(line);
                 reader.close();
-                LicenseManager.setLicense(license.toString());
+//                LicenseManager.setLicense(license.toString());
             } catch (IOException e) {
-            } catch (LicenseProcessingException e) {
             }
 
             pattern = job.getStrings("pattern")[0];
             search = new MolSearch();
             try {
-                Molecule queryMol = MolImporter.importMol(pattern, "smarts");
+                Molecule queryMol = MolImporter.importMol(pattern);
                 search.setQuery(queryMol);
             } catch (MolFormatException e) {
             }
@@ -137,8 +134,8 @@ public class SmartsSearch extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
-
+        System.out.println("Using JChem: " + chemaxon.jchem.VersionInfo.JCHEM_VERSION);
         int res = ToolRunner.run(new Configuration(), new SmartsSearch(), args);
-
+        System.exit(res);
     }
 }

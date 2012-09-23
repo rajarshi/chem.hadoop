@@ -17,9 +17,9 @@ public class SMATCH extends FilterFunc {
         String target = (String) tuple.get(0);
         String query = (String) tuple.get(1);
         try {
-            Molecule queryMol = MolImporter.importMol(query, "smarts");
+            Molecule queryMol = MolImporter.importMol(query);
             search.setQuery(queryMol);
-            search.setTarget(MolImporter.importMol(target, "smiles"));
+            search.setTarget(MolImporter.importMol(target));
             return search.isMatching();
         } catch (SearchException e) {
             e.printStackTrace();
