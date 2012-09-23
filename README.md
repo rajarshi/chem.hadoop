@@ -1,6 +1,6 @@
 Sources to perform cheminformatics tasks within the Hadoop framework. It is currently
-written using the JChem library, which you will need to provide. The Hadoop code is based
-on Apache Hadoop 1.0.3
+written using the [JChem](http://www.chemaxon.com/jchem/) library, which you will need to provide. 
+The Hadoop code is based on [Apache Hadoop 1.0.3](http://hadoop.apache.org/docs/r1.0.3/)
 
 Compiling
 ---------
