@@ -62,7 +62,11 @@ public class NaiveBioIsostere {
             scaffolds.add(s);
         }
         reader.close();
-        System.out.println("Loaded " + scaffolds.size() + " mols");
+        System.out.println("Loaded " + scaffolds.size() + " scaffolds");
+
+        Set<String> usmi = new HashSet<String>();
+        for (Scaffold s : scaffolds) usmi.addAll(s.getMembers());
+        System.out.println("Covers " + usmi.size() + " unique molecules");
 
         BioIsostereReplace bio = new BioIsostereReplace();
         for (Scaffold scaffold : scaffolds) {
@@ -75,6 +79,7 @@ public class NaiveBioIsostere {
             scaf.load(scaffold.getSmi(), chemical.FORMAT_SMILES);
             bio.setScaffold(scaf);
 
+            long start = System.currentTimeMillis();
             for (int i = 0; i < mems.size() - 1; i++) {
                 chemical mol1 = new Jchemical();
                 mol1.load(mems.get(i), chemical.FORMAT_SMILES);
@@ -90,7 +95,8 @@ public class NaiveBioIsostere {
                     usmirks.addAll(smirks);
                 }
             }
-            System.out.println("\tGot " + usmirks.size() + " unique SMIRKS from " + nsmirk + " total SMIRKS");
+            double duration = (System.currentTimeMillis() - start) / 1000.0;
+            System.out.println("\tGot " + usmirks.size() + " unique SMIRKS from " + nsmirk + " total SMIRKS in " + duration + "s");
         }
     }
 
